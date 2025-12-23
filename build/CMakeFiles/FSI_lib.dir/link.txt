@@ -1,0 +1,2 @@
+/u/sw/toolchains/gcc-glibc/11.2.0/prefix/bin/ar qc libFSI_lib.a CMakeFiles/FSI_lib.dir/src/FSI.cpp.o
+/u/sw/toolchains/gcc-glibc/11.2.0/prefix/bin/ranlib libFSI_lib.a

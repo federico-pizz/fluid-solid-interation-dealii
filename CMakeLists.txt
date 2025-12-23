@@ -36,15 +36,15 @@ deal_ii_initialize_cached_variables()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wfloat-conversion -Wmissing-braces -Wnon-virtual-dtor")
 
 # Build object library to compile core sources.
-add_library(FSI_lib OBJECT
+add_library(FSI_lib STATIC
   src/FSI.cpp
 )
 deal_ii_setup_target(FSI_lib)
 target_link_libraries(FSI_lib Boost::filesystem Boost::iostreams Boost::serialization MPI::MPI_CXX)
 
 # Simple test executable to exercise compilation.
-add_executable(fsi_test src/test.cpp)
-target_link_libraries(fsi_test FSI_lib)
-deal_ii_setup_target(fsi_test)
+add_executable(fsi_test_parallel_2D src/test.cpp)
+target_link_libraries(fsi_test_parallel_2D FSI_lib)
+deal_ii_setup_target(fsi_test_parallel_2D)
 
 message(STATUS "Configured FSI project with deal.II")
