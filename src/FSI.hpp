@@ -62,7 +62,7 @@
 
 using namespace dealii;
 
-class FSISerial
+class FSI
 {
 public:
   // Physical dimension (1D, 2D, 3D)
@@ -243,7 +243,7 @@ class FSIPreconditioner
 
   // Constructor
   // do we want to use template like deal-ii?
-  FSISerial(const unsigned int &degree_velocity_,
+  FSI(const unsigned int &degree_velocity_,
       const unsigned int &degree_pressure_,
       const unsigned int &degree_displacement_)
   : degree_velocity(degree_velocity_)

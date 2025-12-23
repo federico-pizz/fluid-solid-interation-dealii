@@ -1,20 +1,20 @@
-#include "FSISerial.hpp"
+#include "FSI.hpp"
 #include <filesystem>
 
 bool
-FSISerial::cell_is_in_fluid_domain(const DoFHandler<dim>::cell_iterator &cell)
+FSI::cell_is_in_fluid_domain(const DoFHandler<dim>::cell_iterator &cell)
 {
   return (cell->material_id() == fluid_domain_id);
 }
 
 bool
-FSISerial::cell_is_in_solid_domain(const DoFHandler<dim>::cell_iterator &cell)
+FSI::cell_is_in_solid_domain(const DoFHandler<dim>::cell_iterator &cell)
 {
   return (cell->material_id() == solid_domain_id);
 }
 
 void
-FSISerial::setup()
+FSI::setup()
 {
 
   // Initialize the finite element space.
@@ -303,7 +303,7 @@ FSISerial::setup()
 }
 
 void 
-FSISerial::assemble_system()
+FSI::assemble_system()
 {
   /**
    * Initialize system_matrix and system_rhs to zero
@@ -612,7 +612,7 @@ FSISerial::assemble_system()
 // This enforces the kinematic coupling condition: fluid stress acting on solid.
 // Interface term: ∫_Γ (2ν∇u·n - p·n) · d dΓ
 void
-FSISerial::assemble_interface_term(
+FSI::assemble_interface_term(
   const FEFaceValuesBase<dim> &         elasticity_fe_face_values,
   const FEFaceValuesBase<dim> &         stokes_fe_face_values,
   std::vector<Tensor<1, dim>> &         elasticity_phi,
@@ -666,7 +666,7 @@ FSISerial::assemble_interface_term(
 }
 
 void 
-FSISerial::solve()
+FSI::solve()
 {
   std::cout << "===============================================" << std::endl;
 
@@ -708,7 +708,7 @@ FSISerial::solve()
 }
 
 void
-FSISerial::output(const unsigned int refinement_cycle)
+FSI::output(const unsigned int refinement_cycle)
 {
   std::vector<std::string> solution_names(dim, "velocity");
   solution_names.emplace_back("pressure");
@@ -738,7 +738,7 @@ FSISerial::output(const unsigned int refinement_cycle)
   data_out.write_vtk(output);
 }
 
-void FSISerial::refine_mesh()
+void FSI::refine_mesh()
 {
   // Allocate vectors to store the error estimation for each cell
     Vector<float> stokes_estimated_error_per_cell(
@@ -833,7 +833,7 @@ void FSISerial::refine_mesh()
 }
 
 void
-FSISerial::make_grid()
+FSI::make_grid()
 {
   GridGenerator::subdivided_hyper_cube(mesh, 8, -1, 1);
 
@@ -854,13 +854,13 @@ FSISerial::make_grid()
 }
 
 void
-FSISerial::run()
+FSI::run()
 {
 
   // Create the mesh.
 
   std::cout << "Creating the mesh" << std::endl;
-  FSISerial::make_grid();
+  FSI::make_grid();
   std::cout << "  Number of elements = " << mesh.n_global_active_cells()
         << std::endl;
  
