@@ -37,7 +37,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wfloat-conversion -Wmissing-braces -Wno
 
 # Build object library to compile core sources.
 add_library(FSI_lib OBJECT
-  src/FSISerial.cpp
+  src/FSI.cpp
 )
 deal_ii_setup_target(FSI_lib)
 target_link_libraries(FSI_lib Boost::filesystem Boost::iostreams Boost::serialization MPI::MPI_CXX)
