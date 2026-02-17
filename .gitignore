@@ -42,3 +42,6 @@ build/
 *.vtk
 *.vtu
 *.vtpu
+
+# step46 file
+src/step46.cpp
