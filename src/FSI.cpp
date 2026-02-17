@@ -1,5 +1,6 @@
 #include "FSI.hpp"
 #include <filesystem>
+#include <chrono>
 
 bool
 FSI::cell_is_in_fluid_domain(const DoFHandler<dim>::cell_iterator &cell)
@@ -701,10 +702,19 @@ FSI::solve()
                             constant_modes);
   
   std::cout << "Solving the linear system" << std::endl;
+  
   solver.solve(system_matrix, solution, system_rhs, preconditioner);
   std::cout << "  " << solver_control.last_step() << " GMRES iterations"
         << std::endl;
+  
+  /*
+  SparseDirectUMFPACK direct_solver;
+  direct_solver.initialize(system_matrix);
+  direct_solver.vmult(solution, system_rhs);
+  */
+
   constraints.distribute(solution);
+  
 }
 
 void
@@ -878,7 +888,14 @@ FSI::run()
       assemble_system();
  
       std::cout << "   Solving..." << std::endl;
+
+      auto start = std::chrono::steady_clock::now();
+      
       solve();
+
+      auto end = std::chrono::steady_clock::now();
+
+      std::cout << std::chrono::duration<double>(end - start).count() << std::endl;
  
       std::cout << "   Writing output..." << std::endl;
       output(refinement_cycle);
