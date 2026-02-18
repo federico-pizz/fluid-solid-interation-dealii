@@ -1,23 +1,28 @@
 #include "FSI.hpp"
 
 bool
-FSI::cell_is_in_fluid_domain(const DoFHandler<dim>::cell_iterator &cell)
+template <int dim>
+bool
+FSI<dim>::cell_is_in_fluid_domain(const DoFHandler<dim>::cell_iterator &cell)
 {
   return (cell->material_id() == fluid_domain_id);
 }
+
+template <int dim>
 bool
-FSI::cell_is_in_solid_domain(const DoFHandler<dim>::cell_iterator &cell)
+FSI<dim>::cell_is_in_solid_domain(const DoFHandler<dim>::cell_iterator &cell)
 {
   return (cell->material_id() == solid_domain_id);
 }
 
+template <int dim>
 void
-FSI::make_grid()
+FSI<dim>::make_grid()
 {
   // Build mesh on a serial triangulation, then create description for fully
   // distributed mesh
   Triangulation<dim> mesh_serial;
-  GridGenerator::subdivided_hyper_cube(mesh_serial, 8, -1, 1);
+  GridGenerator::subdivided_hyper_cube(mesh_serial, n_el, -1, 1);
 
   for (const auto &cell : mesh_serial.active_cell_iterators())
     {
@@ -47,8 +52,9 @@ FSI::make_grid()
   mesh.create_triangulation(construction_data);
 }
 
+template <int dim>
 void
-FSI::run()
+FSI<dim>::run()
 {
   const unsigned int n_cycles = 10 - 2 * dim; // Adaptive refinement cycles
 
@@ -81,8 +87,9 @@ FSI::run()
     }
 }
 
+template <int dim>
 void
-FSI::setup()
+FSI<dim>::setup()
 {
   // Create the mesh.
   {
@@ -524,8 +531,9 @@ FSI::setup()
   }
 }
 
+template <int dim>
 void
-FSI::assemble_system()
+FSI<dim>::assemble_system()
 {
   // Initialize system_matrix and system_rhs to zero
   const FEValuesExtractors::Vector velocities(0);
@@ -849,8 +857,9 @@ FSI::assemble_system()
 // Assemble the coupling terms at the fluid-solid interface.
 // This enforces the kinematic coupling condition: fluid stress acting on solid.
 // Interface term: ∫_Γ (2ν∇u·n - p·n) · d dΓ
+template <int dim>
 void
-FSI::assemble_interface_term(
+FSI<dim>::assemble_interface_term(
   const FEFaceValuesBase<dim> &elasticity_fe_face_values,
   const FEFaceValuesBase<dim> &stokes_fe_face_values,
   std::vector<Tensor<1, dim>> &elasticity_phi,
@@ -965,8 +974,9 @@ FSI::assemble_interface_term(
     }
 }
 
+template <int dim>
 void
-FSI::solve()
+FSI<dim>::solve()
 {
   SolverControl solver_control(1000, 1e-6 * system_rhs.l2_norm());
   SolverGMRES<TrilinosWrappers::MPI::BlockVector> solver(solver_control);
@@ -987,8 +997,9 @@ FSI::solve()
         << std::endl;
 }
 
+template <int dim>
 void
-FSI::output(const unsigned int cycle) const
+FSI<dim>::output(const unsigned int cycle) const
 {
   DataOut<dim> data_out;
   data_out.attach_dof_handler(dof_handler);
@@ -1028,8 +1039,9 @@ FSI::output(const unsigned int cycle) const
   data_out.write_vtu_with_pvtu_record("./", filename, cycle, MPI_COMM_WORLD);
 }
 
+template <int dim>
 void
-FSI::refine_mesh()
+FSI<dim>::refine_mesh()
 {
   Vector<float> estimated_error_per_cell(mesh.n_active_cells());
 
@@ -1057,3 +1069,7 @@ FSI::refine_mesh()
 
   mesh.execute_coarsening_and_refinement();
 }
+
+
+template class FSI<2>;
+template class FSI<3>:

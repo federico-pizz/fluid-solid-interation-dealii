@@ -6,6 +6,10 @@ main(int argc, char *argv[])
   Utilities::MPI::MPI_InitFinalize mpi_init(argc, argv);
 
   // Problem parameters
+  // Physical compile-time dimension and mesh size
+  constexpr unsigned int dim = 2;
+  const unsigned int n_el = 8;
+
   const unsigned int degree_velocity     = 2;
   const unsigned int degree_pressure     = 1;
   const unsigned int degree_displacement = 2;
@@ -17,13 +21,14 @@ main(int argc, char *argv[])
   const double lambda = 10.0; // Lamé lambda
 
   // Create FSI problem
-  FSI problem(degree_velocity,
-              degree_pressure,
-              degree_displacement,
-              nu,
-              p_out,
-              mu,
-              lambda);
+  FSI<dim> problem(n_el,
+                   degree_velocity,
+                   degree_pressure,
+                   degree_displacement,
+                   nu,
+                   p_out,
+                   mu,
+                   lambda);
 
   problem.run();
 

@@ -7,6 +7,7 @@
 #include <deal.II/base/utilities.h>
 
 #include <deal.II/distributed/fully_distributed_tria.h>
+#include <deal.II/fe/fe_values_extractors.h>
 
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_renumbering.h>
@@ -14,7 +15,6 @@
 
 #include <deal.II/fe/fe_nothing.h>
 #include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_simplex_p.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/fe_values_extractors.h>
@@ -51,11 +51,10 @@
 
 using namespace dealii;
 
+template <int dim>
 class FSI
 {
 public:
-  // Physical dimension (1D, 2D, 3D)
-  static constexpr unsigned int dim = 2;
 
   // Dirichlet Boundary Condition for the Inlet Velocity.
   class InletVelocity : public Function<dim>
@@ -196,6 +195,7 @@ public:
 
   // Constructor with mesh file.
   FSI(const std::string  &mesh_file_name_,
+      const unsigned int  n_el_,
       const unsigned int &degree_velocity_,
       const unsigned int &degree_pressure_,
       const unsigned int &degree_displacement_,
@@ -207,6 +207,7 @@ public:
     , mpi_rank(Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
     , pcout(std::cout, mpi_rank == 0)
     , mesh_file_name(mesh_file_name_)
+    , n_el(n_el_)
     , degree_velocity(degree_velocity_)
     , degree_pressure(degree_pressure_)
     , degree_displacement(degree_displacement_)
@@ -218,7 +219,8 @@ public:
   {}
 
   // Constructor with generated grid.
-  FSI(const unsigned int &degree_velocity_,
+  FSI(const unsigned int  n_el_,
+      const unsigned int &degree_velocity_,
       const unsigned int &degree_pressure_,
       const unsigned int &degree_displacement_,
       const double       &nu_,
@@ -229,6 +231,7 @@ public:
     , mpi_rank(Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
     , pcout(std::cout, mpi_rank == 0)
     , mesh_file_name("")
+    , n_el(n_el_)
     , degree_velocity(degree_velocity_)
     , degree_pressure(degree_pressure_)
     , degree_displacement(degree_displacement_)
@@ -307,6 +310,9 @@ protected:
 
   // Mesh file name.
   const std::string mesh_file_name;
+
+  // Number of elements per direction for generated grid.
+  const unsigned int n_el;
 
   // Polynomial degrees.
   const unsigned int degree_velocity;

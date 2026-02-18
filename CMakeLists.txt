@@ -45,8 +45,8 @@ deal_ii_setup_target(FSI_lib)
 target_link_libraries(FSI_lib Boost::filesystem Boost::iostreams Boost::serialization MPI::MPI_CXX)
 
 # Simple test executable to exercise compilation.
-add_executable(fsi_test_parallel_2D src/test_parallel_2D.cpp)
-target_link_libraries(fsi_test_parallel_2D FSI_lib)
-deal_ii_setup_target(fsi_test_parallel_2D)
+add_executable(simulate src/main.cpp)
+target_link_libraries(simulate FSI_lib)
+deal_ii_setup_target(simulate)
 
 message(STATUS "Configured FSI project with deal.II")
