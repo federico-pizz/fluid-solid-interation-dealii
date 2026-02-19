@@ -72,6 +72,8 @@ void FSI::setup() {
     // Assign active FE index to each cell based on its domain
     // Index 0 for fluid (Stokes), index 1 for solid (elasticity)
     for (const auto &cell : dof_handler.active_cell_iterators()) {
+      // In the parallel implementation we need to make sure to skip
+      // non locally owned cell.
       if (!cell->is_locally_owned())
         continue;
 
@@ -153,6 +155,9 @@ void FSI::setup() {
       std::vector<types::global_dof_index> local_face_dof_indices(
           stokes_fe->n_dofs_per_face());
       for (const auto &cell : dof_handler.active_cell_iterators()) {
+        // Artificial cells are note owned by the process and 
+        // are not ghost cells. In this way we also process ghost 
+        // cells.
         if (cell->is_artificial()) continue;
         if (cell_is_in_fluid_domain(cell))
           for (const auto face_no : cell->face_indices())
@@ -233,14 +238,7 @@ void FSI::setup() {
     std::vector<unsigned int> block_sizes(3);
     block_sizes[0] = n_u;
     block_sizes[1] = n_p;
-    block_sizes[2] = n_d;
-    // FIX 1: Explicitly create the missing 8th argument (a face evaluation
-    // function) that deal.II 9.5.1 demands. Returning 'true' preserves the
-    // default behavior.
-    std::function<bool(const DoFHandler<dim>::active_cell_iterator &,
-                       unsigned int)>
-        face_eval = [](const DoFHandler<dim>::active_cell_iterator &,
-                       unsigned int) { return true; };
+    block_sizes[2] = n_d;    
     DoFTools::make_flux_sparsity_pattern(dof_handler, sparsity, constraints,
                                          true, coupling, face_coupling,
                                          numbers::invalid_subdomain_id);
@@ -310,8 +308,10 @@ void FSI::setup() {
       }
     }
 
-    TrilinosWrappers::BlockSparsityPattern sparsity_pressure_mass(
-        block_owned_dofs, MPI_COMM_WORLD);
+    TrilinosWrappers::BlockSparsityPattern sparsity_pressure_mass(block_owned_dofs,
+                                                                  block_owned_dofs,
+                                                                  block_relevant_dofs,
+                                                                  MPI_COMM_WORLD);
 
     DoFTools::make_sparsity_pattern(dof_handler, coupling,
                                     sparsity_pressure_mass, constraints, true,
@@ -695,9 +695,10 @@ void FSI::solve() {
 
   // do not extract constant modes for now
 
-  //  // DoFTools::extract_constant_modes(dof_handler,
-  //  // fe_collection.component_mask(displacements),
-  //  //                                  constant_modes);
+  // DoFTools::extract_constant_modes(
+  //          dof_handler,
+  //          fe_collection.component_mask(displacements),
+  //          constant_modes);
 
   FSIPreconditioner preconditioner;
   preconditioner.initialize(
@@ -710,11 +711,6 @@ void FSI::solve() {
   solver.solve(system_matrix, solution_owned, system_rhs, preconditioner);
   pcout << "  " << solver_control.last_step() << " GMRES iterations"
         << std::endl;
-  /*
-  SparseDirectUMFPACK direct_solver;
-  direct_solver.initialize(system_matrix);
-  direct_solver.vmult(solution_owned, system_rhs);
-  */
 
   constraints.distribute(solution_owned);
   solution = solution_owned;
@@ -747,7 +743,7 @@ void FSI::output(const unsigned int refinement_cycle) {
 
   data_out.build_patches();
 
-  const std::string output_file_name = "output-fsi";
+  const std::string output_file_name = "output-fsi-parallel";
   data_out.write_vtu_with_pvtu_record("./", output_file_name, refinement_cycle,
                                       MPI_COMM_WORLD);
 
@@ -784,12 +780,22 @@ void FSI::refine_mesh() {
       elasticity_estimated_error_per_cell,
       fe_collection.component_mask(displacements));
   // Combine the two error estimates with experimentally determined weights
-  stokes_estimated_error_per_cell *=
-      4.0f / stokes_estimated_error_per_cell.l2_norm();
-  elasticity_estimated_error_per_cell *=
-      1.0f / elasticity_estimated_error_per_cell.l2_norm();
+  // In order to refine the mesh correctly every processor needs to know
+  // the global total error so they can scale the local errors proportionally.
+  const double local_stokes_sq = stokes_estimated_error_per_cell.norm_sqr();
+  double global_stokes_sq = 0.0f;
+  // Reduce and broadcast the results to each processor
+  MPI_Allreduce(&local_stokes_sq, &global_stokes_sq,
+                1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+  stokes_estimated_error_per_cell *= 4.0f / std::sqrt(global_stokes_sq);
+
+  const double local_elasticity_sq = elasticity_estimated_error_per_cell.norm_sqr();
+  double global_elasticity_sq = 0.0f;
+  MPI_Allreduce(&local_elasticity_sq, &global_elasticity_sq,
+                1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+  elasticity_estimated_error_per_cell *= 1.0f / std::sqrt(global_elasticity_sq);
   
-  Vector<float> estimated_error_per_cell(mesh.n_active_cells());
+  Vector<double> estimated_error_per_cell(mesh.n_active_cells());
   estimated_error_per_cell += stokes_estimated_error_per_cell;
   estimated_error_per_cell += elasticity_estimated_error_per_cell;
   
@@ -815,7 +821,7 @@ void FSI::refine_mesh() {
                   cell->neighbor_child_on_subface(f, 0)))) ||
              (cell->neighbor_is_coarser(f) &&
               cell_is_in_fluid_domain(cell->neighbor(f)))))
-          estimated_error_per_cell(local_index) = 0;
+          estimated_error_per_cell(cell->active_cell_index()) = 0;
       } else {
         if ((cell->at_boundary(f) == false) &&
             (((cell->neighbor(f)->level() == cell->level()) &&
@@ -827,7 +833,7 @@ void FSI::refine_mesh() {
                   cell->neighbor_child_on_subface(f, 0)))) ||
              (cell->neighbor_is_coarser(f) &&
               cell_is_in_solid_domain(cell->neighbor(f)))))
-          estimated_error_per_cell(local_index) = 0;
+          estimated_error_per_cell(cell->active_cell_index()) = 0;
       }
     ++local_index;
   }
