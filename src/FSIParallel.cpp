@@ -153,8 +153,7 @@ void FSI::setup() {
       std::vector<types::global_dof_index> local_face_dof_indices(
           stokes_fe->n_dofs_per_face());
       for (const auto &cell : dof_handler.active_cell_iterators()) {
-        if (!cell->is_locally_owned())
-          continue;
+        if (cell->is_artificial()) continue;
         if (cell_is_in_fluid_domain(cell))
           for (const auto face_no : cell->face_indices())
             if (cell->face(face_no)->at_boundary() == false) {
@@ -784,21 +783,11 @@ void FSI::refine_mesh() {
       std::map<types::boundary_id, const Function<dim> *>(), solution,
       elasticity_estimated_error_per_cell,
       fe_collection.component_mask(displacements));
-
-  
   // Combine the two error estimates with experimentally determined weights
-  const float stokes_error_norm = stokes_estimated_error_per_cell.l2_norm();
-  if (stokes_error_norm > 1e-17)
-    stokes_estimated_error_per_cell *= 4.0f / stokes_error_norm;
-  else
-    stokes_estimated_error_per_cell = 0;
-
-  const float elasticity_error_norm =
-      elasticity_estimated_error_per_cell.l2_norm();
-  if (elasticity_error_norm > 1e-17)
-    elasticity_estimated_error_per_cell *= 1.0f / elasticity_error_norm;
-  else
-    elasticity_estimated_error_per_cell = 0;
+  stokes_estimated_error_per_cell *=
+      4.0f / stokes_estimated_error_per_cell.l2_norm();
+  elasticity_estimated_error_per_cell *=
+      1.0f / elasticity_estimated_error_per_cell.l2_norm();
   
   Vector<float> estimated_error_per_cell(mesh.n_active_cells());
   estimated_error_per_cell += stokes_estimated_error_per_cell;
@@ -807,6 +796,9 @@ void FSI::refine_mesh() {
 
   // Set error to zero for cells at the interface to prevent artificially
   // large error indicators on both sides of the interface between subdomains.
+  unsigned int local_index = 0; // A counter that increments only for locally owned-cells
+                                // using cell->active_cell_index() returns a global index wich
+                                // is evidently wrong.
   for (const auto &cell : dof_handler.active_cell_iterators()) {
     if (!cell->is_locally_owned())
       continue;
@@ -823,7 +815,7 @@ void FSI::refine_mesh() {
                   cell->neighbor_child_on_subface(f, 0)))) ||
              (cell->neighbor_is_coarser(f) &&
               cell_is_in_fluid_domain(cell->neighbor(f)))))
-          estimated_error_per_cell(cell->active_cell_index()) = 0;
+          estimated_error_per_cell(local_index) = 0;
       } else {
         if ((cell->at_boundary(f) == false) &&
             (((cell->neighbor(f)->level() == cell->level()) &&
@@ -835,8 +827,9 @@ void FSI::refine_mesh() {
                   cell->neighbor_child_on_subface(f, 0)))) ||
              (cell->neighbor_is_coarser(f) &&
               cell_is_in_solid_domain(cell->neighbor(f)))))
-          estimated_error_per_cell(cell->active_cell_index()) = 0;
+          estimated_error_per_cell(local_index) = 0;
       }
+    ++local_index;
   }
 
   // Mark cells for refinement (30%) and coarsening (0%) based on error
