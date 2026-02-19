@@ -785,13 +785,21 @@ void FSI::refine_mesh() {
       elasticity_estimated_error_per_cell,
       fe_collection.component_mask(displacements));
 
-
+  
   // Combine the two error estimates with experimentally determined weights
-  stokes_estimated_error_per_cell *=
-      4.0f / stokes_estimated_error_per_cell.l2_norm();
-  elasticity_estimated_error_per_cell *=
-      1.0f / elasticity_estimated_error_per_cell.l2_norm();
+  const float stokes_error_norm = stokes_estimated_error_per_cell.l2_norm();
+  if (stokes_error_norm > 1e-17)
+    stokes_estimated_error_per_cell *= 4.0f / stokes_error_norm;
+  else
+    stokes_estimated_error_per_cell = 0;
 
+  const float elasticity_error_norm =
+      elasticity_estimated_error_per_cell.l2_norm();
+  if (elasticity_error_norm > 1e-17)
+    elasticity_estimated_error_per_cell *= 1.0f / elasticity_error_norm;
+  else
+    elasticity_estimated_error_per_cell = 0;
+  
   Vector<float> estimated_error_per_cell(mesh.n_active_cells());
   estimated_error_per_cell += stokes_estimated_error_per_cell;
   estimated_error_per_cell += elasticity_estimated_error_per_cell;
