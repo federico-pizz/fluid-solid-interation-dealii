@@ -338,7 +338,6 @@ FSI<dim>::setup()
     const unsigned int offset_u = 0;
     const unsigned int offset_p = dofs_per_block[0];
     const unsigned int offset_d = dofs_per_block[0] + dofs_per_block[1];
-
     std::vector<types::global_dof_index> local_dofs_d;  // Displacement (Solid)
     std::vector<types::global_dof_index> local_dofs_up; // Vel/Pres (Fluid)
 
@@ -389,40 +388,15 @@ FSI<dim>::setup()
                             cell->neighbor_child_on_subface(f, subface)
                               ->get_dof_indices(local_dofs_up);
 
-                            for (auto i : local_dofs_d)
-                              {
-                                const unsigned int i_local = i - offset_d;
-                                for (auto j : local_dofs_up)
-                                  {
-                                    if (j < offset_p + offset_u) // Velocity
-                                      sparsity.block(2, 0).add(i_local, j);
-                                    else // Pressure
-                                      sparsity.block(2, 1).add(i_local,
-                                                               j - offset_p);
-                                  }
-                              }
-                          }
-                      }
+                for (auto i : local_dofs_d) {
+                  const unsigned int i_local = i - offset_d;
+                  for (auto j : local_dofs_up) {
+                    if (j < offset_p + offset_u) // Velocity
+                      sparsity.block(2, 0).add(i_local, j);
+                    else // Pressure
+                      sparsity.block(2, 1).add(i_local, j - offset_p);
                   }
-
-                if (is_interface)
-                  {
-                    // Case for standard neighbor or coarser neighbor
-                    local_dofs_d.resize(cell->get_fe().n_dofs_per_cell());
-                    cell->get_dof_indices(local_dofs_d);
-
-                    for (auto i : local_dofs_d)
-                      {
-                        const unsigned int i_local = i - offset_d;
-                        for (auto j : local_dofs_up)
-                          {
-                            if (j < offset_p + offset_u) // Velocity
-                              sparsity.block(2, 0).add(i_local, j);
-                            else // Pressure
-                              sparsity.block(2, 1).add(i_local, j - offset_p);
-                          }
-                      }
-                  }
+                }
               }
           }
         else if (cell_is_in_fluid_domain(cell))
@@ -463,41 +437,55 @@ FSI<dim>::setup()
                             cell->neighbor_child_on_subface(f, subface)
                               ->get_dof_indices(local_dofs_d);
 
-                            for (auto j : local_dofs_up)
-                              {
-                                for (auto i : local_dofs_d)
-                                  {
-                                    const unsigned int i_local = i - offset_d;
-                                    if (j < offset_p + offset_u) // Velocity
-                                      sparsity.block(0, 2).add(j, i_local);
-                                    else // Pressure
-                                      sparsity.block(1, 2).add(j - offset_p,
-                                                               i_local);
-                                  }
-                              }
-                          }
-                      }
-                  }
+            for (auto i : local_dofs_d) {
+              const unsigned int i_local = i - offset_d;
+              for (auto j : local_dofs_up) {
+                if (j < offset_p + offset_u) // Velocity
+                  sparsity.block(2, 0).add(i_local, j);
+                else // Pressure
+                  sparsity.block(2, 1).add(i_local, j - offset_p);
+              }
+            }
+          }
+        }
+      } else if (cell_is_in_fluid_domain(cell)) {
+        // Symmetric Loop: Fluid cells interfacing Solid neighbors
+        for (const auto f : cell->face_indices()) {
+          if (cell->face(f)->at_boundary())
+            continue;
 
                 if (is_interface)
                   {
                     local_dofs_up.resize(cell->get_fe().n_dofs_per_cell());
                     cell->get_dof_indices(local_dofs_up);
 
-                    for (auto j : local_dofs_up)
-                      {
-                        for (auto i : local_dofs_d)
-                          {
-                            const unsigned int i_local = i - offset_d;
-                            if (j < offset_p + offset_u) // Velocity
-                              sparsity.block(0, 2).add(j, i_local);
-                            else // Pressure
-                              sparsity.block(1, 2).add(j - offset_p, i_local);
-                          }
-                      }
+                for (auto j : local_dofs_up) {
+                  for (auto i : local_dofs_d) {
+                    const unsigned int i_local = i - offset_d;
+                    if (j < offset_p + offset_u) // Velocity
+                      sparsity.block(0, 2).add(j, i_local);
+                    else // Pressure
+                      sparsity.block(1, 2).add(j - offset_p, i_local);
                   }
+                }
               }
           }
+
+          if (is_interface) {
+            local_dofs_up.resize(cell->get_fe().n_dofs_per_cell());
+            cell->get_dof_indices(local_dofs_up);
+
+            for (auto j : local_dofs_up) {
+              for (auto i : local_dofs_d) {
+                const unsigned int i_local = i - offset_d;
+                if (j < offset_p + offset_u) // Velocity
+                  sparsity.block(0, 2).add(j, i_local);
+                else // Pressure
+                  sparsity.block(1, 2).add(j - offset_p, i_local);
+              }
+            }
+          }
+        }
       }
 
     sparsity.compress();
@@ -972,6 +960,37 @@ FSI<dim>::assemble_interface_term(
             }
         }
     }
+    for (unsigned int k = 0; k < elasticity_dofs_per_cell; ++k) {
+      elasticity_phi[k] = elasticity_fe_face_values[displacements].value(k, q);
+    }
+
+    for (unsigned int i = 0; i < elasticity_dofs_per_cell; ++i) {
+      for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j) {
+
+        Tensor<2, dim> stress_tensor;
+        // - p * I
+        for (unsigned int d = 0; d < dim; ++d)
+          stress_tensor[d][d] -= stokes_phi_p[j];
+
+        // + 2 * nu * epsilon(u)
+        // epsilon = 0.5 * (grad + grad^T)
+        // 2 * nu * epsilon = nu * (grad + grad^T)
+        stress_tensor +=
+            nu * (stokes_grad_phi_u[j] + transpose(stokes_grad_phi_u[j]));
+
+        // traction = stress * n
+        Tensor<1, dim> traction = stress_tensor * normal;
+
+        local_interface_matrix(i, j) +=
+            scalar_product(traction, elasticity_phi[i]) *
+            elasticity_fe_face_values.JxW(q);
+
+        // Add a penalty term for stability (Nitsche's method or similar
+        // often used, but here standard Neumann coupling). If unstable,
+        // might need modification.
+      }
+    }
+  }
 }
 
 template <int dim>
@@ -982,13 +1001,15 @@ FSI<dim>::solve()
   SolverGMRES<TrilinosWrappers::MPI::BlockVector> solver(solver_control);
 
   FSIPreconditioner preconditioner;
-  preconditioner.initialize(system_matrix,
-                            pressure_mass,
-                            mass_matrix,
-                            stokes_fe->dofs_per_cell,
-                            elasticity_fe->dofs_per_cell,
-                            stokes_fe->degree,
-                            elasticity_fe->degree);
+  preconditioner.initialize(
+      system_matrix, pressure_mass, mass_matrix, stokes_fe->dofs_per_cell,
+      elasticity_fe->dofs_per_cell, stokes_fe->degree, elasticity_fe->degree);
+
+  // Calculate constant modes for displacement block
+  // std::vector<std::vector<bool>> constant_modes;
+  // (Optional: logic to populate constant_modes if needed, passing empty for
+  // now as per previous FSI.hpp)
+  // preconditioner.initialize(system_matrix, pressure_mass, constant_modes);
 
   solver.solve(system_matrix, solution_owned, system_rhs, preconditioner);
 
@@ -997,10 +1018,7 @@ FSI<dim>::solve()
         << std::endl;
 }
 
-template <int dim>
-void
-FSI<dim>::output(const unsigned int cycle) const
-{
+void FSI::output(const unsigned int cycle) const {
   DataOut<dim> data_out;
   data_out.attach_dof_handler(dof_handler);
 
@@ -1069,7 +1087,3 @@ FSI<dim>::refine_mesh()
 
   mesh.execute_coarsening_and_refinement();
 }
-
-
-template class FSI<2>;
-template class FSI<3>:

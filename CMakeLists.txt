@@ -38,15 +38,27 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wfloat-conversion -Wmissing-braces -Wno
 
 
 # Build object library to compile core sources.
-add_library(FSI_lib OBJECT
-  src/FSI.cpp
-)
-deal_ii_setup_target(FSI_lib)
-target_link_libraries(FSI_lib Boost::filesystem Boost::iostreams Boost::serialization MPI::MPI_CXX)
+# add_library(FSI_lib OBJECT
+#   src/FSI.cpp
+# )
+# deal_ii_setup_target(FSI_lib)
+# target_link_libraries(FSI_lib Boost::filesystem Boost::iostreams Boost::serialization MPI::MPI_CXX)
 
-# Simple test executable to exercise compilation.
-add_executable(simulate src/main.cpp)
-target_link_libraries(simulate FSI_lib)
-deal_ii_setup_target(simulate)
+# Build object library to compile parallel sources.
+add_library(FSIParallel_lib OBJECT
+  src/FSIParallel.cpp
+)
+deal_ii_setup_target(FSIParallel_lib)
+target_link_libraries(FSIParallel_lib Boost::filesystem Boost::iostreams Boost::serialization MPI::MPI_CXX)
+
+# Serial executable.
+# add_executable(simulate_serial src/simulate_serial.cpp)
+# target_link_libraries(simulate_serial FSI_lib)
+# deal_ii_setup_target(simulate_serial)
+
+# Parallel executable.
+add_executable(simulate_parallel src/simulate_parallel.cpp)
+target_link_libraries(simulate_parallel FSIParallel_lib)
+deal_ii_setup_target(simulate_parallel)
 
 message(STATUS "Configured FSI project with deal.II")

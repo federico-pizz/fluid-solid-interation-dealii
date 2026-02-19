@@ -51,78 +51,65 @@
 
 using namespace dealii;
 
-template <int dim>
-class FSI
-{
+class FSI {
 public:
 
   // Dirichlet Boundary Condition for the Inlet Velocity.
-  class InletVelocity : public Function<dim>
-  {
+  class InletVelocity : public Function<dim> {
   public:
-    InletVelocity()
-      : Function<dim>(dim + 1 + dim)
-    {}
+    InletVelocity() : Function<dim>(dim + 1 + dim) {}
 
-    virtual double
-    value(const Point<dim> &p, const unsigned int component) const override
-    {
-      if (component == dim - 1)
-        {
-          switch (dim)
-            {
-              case 2:
-                return std::sin(numbers::PI * p[0]);
-              case 3:
-                return std::sin(numbers::PI * p[0]) *
-                       std::sin(numbers::PI * p[1]);
-              default:
-                Assert(false, ExcNotImplemented());
-            }
+    virtual double value(const Point<dim> &p,
+                         const unsigned int component) const override {
+      if (component == dim - 1) {
+        switch (dim) {
+        case 2:
+          return std::sin(numbers::PI * p[0]);
+        case 3:
+          return std::sin(numbers::PI * p[0]) * std::sin(numbers::PI * p[1]);
+        default:
+          Assert(false, ExcNotImplemented());
         }
+      }
       return 0;
     }
 
-    virtual void
-    vector_value(const Point<dim> &p, Vector<double> &values) const override
-    {
+    virtual void vector_value(const Point<dim> &p,
+                              Vector<double> &values) const override {
       for (unsigned int c = 0; c < this->n_components; ++c)
         values(c) = this->value(p, c);
     }
   };
 
   // Preconditioner class. RE-DO
-  class FSIPreconditioner
-  {
+  class FSIPreconditioner {
   public:
-    void
-    initialize(
-      const TrilinosWrappers::BlockSparseMatrix &system_matrix,
-      const TrilinosWrappers::BlockSparseMatrix &pressure_mass,
-      const std::vector<std::vector<bool>>      &displacement_constant_modes)
-    {
-      velocity_stiffness     = &system_matrix.block(0, 0);
-      this->pressure_mass    = &pressure_mass.block(1, 1);
+    void initialize(
+        const TrilinosWrappers::BlockSparseMatrix &system_matrix,
+        const TrilinosWrappers::BlockSparseMatrix &pressure_mass,
+        const std::vector<std::vector<bool>> &displacement_constant_modes) {
+      velocity_stiffness = &system_matrix.block(0, 0);
+      this->pressure_mass = &pressure_mass.block(1, 1);
       displacement_stiffness = &system_matrix.block(2, 2);
-      B10                    = &system_matrix.block(1, 0);
-      B20                    = &system_matrix.block(2, 0);
-      B21                    = &system_matrix.block(2, 1);
+      B10 = &system_matrix.block(1, 0);
+      B20 = &system_matrix.block(2, 0);
+      B21 = &system_matrix.block(2, 1);
 
       // Trilinos AMG preconditioners
       TrilinosWrappers::PreconditionAMG::AdditionalData amg_data;
-      amg_data.constant_modes        = displacement_constant_modes;
-      amg_data.elliptic              = true;
+      amg_data.constant_modes = displacement_constant_modes;
+      amg_data.elliptic = true;
       amg_data.higher_order_elements = false;
-      amg_data.smoother_sweeps       = 3;
-      amg_data.w_cycle               = false;
+      amg_data.smoother_sweeps = 3;
+      amg_data.w_cycle = false;
       amg_data.aggregation_threshold = 1e-3;
       // Use the displacement block (2,2) for AMG initialization
       preconditioner_displacement.initialize(*displacement_stiffness, amg_data);
 
       TrilinosWrappers::PreconditionAMG::AdditionalData amg_data_vel;
-      amg_data_vel.elliptic              = true;
+      amg_data_vel.elliptic = true;
       amg_data_vel.higher_order_elements = true;
-      amg_data_vel.smoother_sweeps       = 2;
+      amg_data_vel.smoother_sweeps = 2;
       amg_data_vel.aggregation_threshold = 1e-3;
       // Use the velocity block (0,0) for AMG initialization
       preconditioner_velocity.initialize(*velocity_stiffness, amg_data_vel);
@@ -131,17 +118,13 @@ public:
       preconditioner_pressure.initialize(*this->pressure_mass);
     }
 
-    void
-    vmult(TrilinosWrappers::MPI::BlockVector       &dst,
-          const TrilinosWrappers::MPI::BlockVector &src) const
-    {
+    void vmult(TrilinosWrappers::MPI::BlockVector &dst,
+               const TrilinosWrappers::MPI::BlockVector &src) const {
       // Velocity block
       SolverControl solver_control_vel(2000, 1e-2 * src.block(0).l2_norm());
       SolverCG<TrilinosWrappers::MPI::Vector> solver_cg_vel(solver_control_vel);
       dst.block(0) = 0;
-      solver_cg_vel.solve(*velocity_stiffness,
-                          dst.block(0),
-                          src.block(0),
+      solver_cg_vel.solve(*velocity_stiffness, dst.block(0), src.block(0),
                           preconditioner_velocity);
 
       // Intermediate step
@@ -152,11 +135,9 @@ public:
       // Pressure block
       SolverControl solver_control_pres(2000, 1e-2 * tmp_p.l2_norm());
       SolverCG<TrilinosWrappers::MPI::Vector> solver_cg_pres(
-        solver_control_pres);
+          solver_control_pres);
       dst.block(1) = 0;
-      solver_cg_pres.solve(*pressure_mass,
-                           dst.block(1),
-                           tmp_p,
+      solver_cg_pres.solve(*pressure_mass, dst.block(1), tmp_p,
                            preconditioner_pressure);
 
       // Intermediate step
@@ -170,11 +151,9 @@ public:
       // Displacement block
       SolverControl solver_control_disp(2000, 1e-2 * tmp_d.l2_norm());
       SolverGMRES<TrilinosWrappers::MPI::Vector> solver_gmres_disp(
-        solver_control_disp);
+          solver_control_disp);
       dst.block(2) = 0;
-      solver_gmres_disp.solve(*displacement_stiffness,
-                              dst.block(2),
-                              tmp_d,
+      solver_gmres_disp.solve(*displacement_stiffness, dst.block(2), tmp_d,
                               preconditioner_displacement);
     }
 
@@ -184,9 +163,9 @@ public:
     const TrilinosWrappers::SparseMatrix *B10;
     const TrilinosWrappers::SparseMatrix *B20;
     const TrilinosWrappers::SparseMatrix *B21;
-    TrilinosWrappers::PreconditionAMG     preconditioner_velocity;
-    TrilinosWrappers::PreconditionAMG     preconditioner_displacement;
-    TrilinosWrappers::PreconditionJacobi  preconditioner_pressure;
+    TrilinosWrappers::PreconditionAMG preconditioner_velocity;
+    TrilinosWrappers::PreconditionAMG preconditioner_displacement;
+    TrilinosWrappers::PreconditionJacobi preconditioner_pressure;
     const TrilinosWrappers::SparseMatrix *pressure_mass;
     mutable TrilinosWrappers::MPI::Vector tmp_p;
     mutable TrilinosWrappers::MPI::Vector tmp_d;
@@ -243,28 +222,21 @@ public:
   {}
 
   // Main run loop.
-  void
-  run();
+  void run();
 
 protected:
   // Initialization.
-  void
-  setup();
+  void setup();
 
-  void
-  make_grid();
+  void make_grid();
 
-  void
-  refine_mesh();
+  void refine_mesh();
 
-  void
-  assemble_system();
+  void assemble_system();
 
-  void
-  solve();
+  void solve();
 
-  void
-  output(const unsigned int refinement_cycle);
+  void output(const unsigned int refinement_cycle);
 
   // Determine physics for each cell.
   static bool
@@ -323,20 +295,20 @@ protected:
   parallel::fullydistributed::Triangulation<dim> mesh;
 
   // DoF handler and FE collections.
-  DoFHandler<dim>                  dof_handler;
-  hp::FECollection<dim>            fe_collection;
-  std::unique_ptr<FESystem<dim>>   stokes_fe;
-  std::unique_ptr<FESystem<dim>>   elasticity_fe;
-  std::unique_ptr<QGauss<dim>>     stokes_quadrature;
-  std::unique_ptr<QGauss<dim>>     elasticity_quadrature;
+  DoFHandler<dim> dof_handler;
+  hp::FECollection<dim> fe_collection;
+  std::unique_ptr<FESystem<dim>> stokes_fe;
+  std::unique_ptr<FESystem<dim>> elasticity_fe;
+  std::unique_ptr<QGauss<dim>> stokes_quadrature;
+  std::unique_ptr<QGauss<dim>> elasticity_quadrature;
   std::unique_ptr<QGauss<dim - 1>> common_face_quadrature;
 
   // Constraints and index sets.
   AffineConstraints<double> constraints;
-  IndexSet                  locally_owned_dofs;
-  IndexSet                  locally_relevant_dofs;
-  std::vector<IndexSet>     block_owned_dofs;
-  std::vector<IndexSet>     block_relevant_dofs;
+  IndexSet locally_owned_dofs;
+  IndexSet locally_relevant_dofs;
+  std::vector<IndexSet> block_owned_dofs;
+  std::vector<IndexSet> block_relevant_dofs;
 
   // Linear system. ////////////////////////////////////////////////////////////
 
@@ -363,14 +335,13 @@ protected:
 
 private:
   // Internal helpers.
-  void
-  assemble_interface_term(
-    const FEFaceValuesBase<dim> &elasticity_fe_face_values,
-    const FEFaceValuesBase<dim> &stokes_fe_face_values,
-    std::vector<Tensor<1, dim>> &elasticity_phi,
-    std::vector<Tensor<2, dim>> &stokes_grad_phi_u,
-    std::vector<double>         &stokes_phi_p,
-    FullMatrix<double>          &local_interface_matrix) const;
+  void assemble_interface_term(
+      const FEFaceValuesBase<dim> &elasticity_fe_face_values,
+      const FEFaceValuesBase<dim> &stokes_fe_face_values,
+      std::vector<Tensor<1, dim>> &elasticity_phi,
+      std::vector<Tensor<2, dim>> &stokes_grad_phi_u,
+      std::vector<double> &stokes_phi_p,
+      FullMatrix<double> &local_interface_matrix) const;
 };
 
 #endif /* FSI_HPP */

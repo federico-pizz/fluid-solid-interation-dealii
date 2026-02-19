@@ -87,10 +87,12 @@ FSI::setup()
 
     // Assign active FE index to each cell based on its domain
     // Index 0 for fluid (Stokes), index 1 for solid (elasticity)
-    for (const auto &cell : dof_handler.active_cell_iterators())
-      {
-        if (cell_is_in_fluid_domain(cell))
-          cell->set_active_fe_index(0);
+    for (const auto &cell : dof_handler.active_cell_iterators()) {
+      if (!cell->is_locally_owned())
+        continue;
+
+      if (cell_is_in_fluid_domain(cell))
+        cell->set_active_fe_index(0);
 
         else if (cell_is_in_solid_domain(cell))
           cell->set_active_fe_index(1);
@@ -139,7 +141,7 @@ FSI::setup()
     pcout << "  Number of DoFs: " << std::endl;
     pcout << "    velocity     = " << n_u << std::endl;
     pcout << "    pressure     = " << n_p << std::endl;
-    pcout << "    displacement = " << n_p << std::endl;
+    pcout << "    displacement = " << n_d << std::endl;
     pcout << "    total        = " << n_u + n_p + n_d << std::endl;
 
     // Set up constraints for boundary conditions and hanging nodes.
@@ -267,7 +269,19 @@ FSI::setup()
                                                   MPI_COMM_WORLD);
                                                   
 
-  std::vector<unsigned int> block_sizes(3);
+    // The matrix entries from the interface terms must be included in the
+    // sparsity pattern, so we use make_flux_sparsity_pattern. This function is
+    // similar to make_sparsity_pattern() but assumes the bilinear form contains
+    // terms that integrate over faces between cells. This is exactly what we
+    // need since interface terms couple degrees of freedom from two adjacent
+    // cells along a face. This also includes entries from computing terms
+    // coupling DoFs from both sides of all interfaces.
+
+    TrilinosWrappers::BlockSparsityPattern sparsity(
+        block_owned_dofs, block_owned_dofs, block_relevant_dofs,
+        MPI_COMM_WORLD);
+
+    std::vector<unsigned int> block_sizes(3);
     block_sizes[0] = n_u;
     block_sizes[1] = n_p;
     block_sizes[2] = n_d;
@@ -803,7 +817,12 @@ FSI::solve()
                                    fe_collection.component_mask(displacements),
                                    constant_modes);
 
-  
+  // do not extract constant modes for now
+
+  // DoFTools::extract_constant_modes(
+  //     dof_handler, fe_collection.component_mask(displacements),
+  //     constant_modes);
+
   FSIPreconditioner preconditioner;
   preconditioner.initialize(system_matrix.block(0, 0),
                             pressure_mass.block(1, 1),
