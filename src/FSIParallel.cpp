@@ -782,20 +782,20 @@ void FSI::refine_mesh() {
   // Combine the two error estimates with experimentally determined weights
   // In order to refine the mesh correctly every processor needs to know
   // the global total error so they can scale the local errors proportionally.
-  const double local_stokes_sq = stokes_estimated_error_per_cell.norm_sqr();
-  double global_stokes_sq = 0.0f;
+  const float local_stokes_sq = stokes_estimated_error_per_cell.norm_sqr();
+  float global_stokes_sq = 0.0f;
   // Reduce and broadcast the results to each processor
   MPI_Allreduce(&local_stokes_sq, &global_stokes_sq,
                 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
   stokes_estimated_error_per_cell *= 4.0f / std::sqrt(global_stokes_sq);
 
-  const double local_elasticity_sq = elasticity_estimated_error_per_cell.norm_sqr();
-  double global_elasticity_sq = 0.0f;
+  const float local_elasticity_sq = elasticity_estimated_error_per_cell.norm_sqr();
+  float global_elasticity_sq = 0.0f;
   MPI_Allreduce(&local_elasticity_sq, &global_elasticity_sq,
                 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
   elasticity_estimated_error_per_cell *= 1.0f / std::sqrt(global_elasticity_sq);
   
-  Vector<double> estimated_error_per_cell(mesh.n_active_cells());
+  Vector<float> estimated_error_per_cell(mesh.n_active_cells());
   estimated_error_per_cell += stokes_estimated_error_per_cell;
   estimated_error_per_cell += elasticity_estimated_error_per_cell;
   
