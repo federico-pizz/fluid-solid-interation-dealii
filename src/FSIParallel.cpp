@@ -11,7 +11,7 @@ bool FSI::cell_is_in_solid_domain(const DoFHandler<dim>::cell_iterator &cell) {
 void FSI::setup() {
 
   // Initialize the finite element space.
-  if (fe_collection.size() == 0) {
+  {
     pcout << "Initializing the finite element space" << std::endl;
 
     // Setup FE space.
@@ -29,8 +29,7 @@ void FSI::setup() {
     elasticity_fe = std::make_unique<FESystem<dim>>(
         fe_nothing, dim, fe_nothing, 1, fe_scalar_displacement, dim);
 
-    fe_collection.push_back(*stokes_fe);
-    fe_collection.push_back(*elasticity_fe);
+    fe_collection = hp::FECollection<dim>(*stokes_fe, *elasticity_fe);
 
     pcout << "  Velocity degree:           = " << fe_scalar_velocity.degree
           << std::endl;
@@ -786,23 +785,17 @@ void FSI::refine_mesh() {
       elasticity_estimated_error_per_cell,
       fe_collection.component_mask(displacements));
 
-  // Combine the two error estimates with experimentally determined weights
-  const float stokes_error_norm = stokes_estimated_error_per_cell.l2_norm();
-  if (stokes_error_norm > 1e-17)
-    stokes_estimated_error_per_cell *= 4.0f / stokes_error_norm;
-  else
-    stokes_estimated_error_per_cell = 0;
 
-  const float elasticity_error_norm =
-      elasticity_estimated_error_per_cell.l2_norm();
-  if (elasticity_error_norm > 1e-17)
-    elasticity_estimated_error_per_cell *= 1.0f / elasticity_error_norm;
-  else
-    elasticity_estimated_error_per_cell = 0;
+  // Combine the two error estimates with experimentally determined weights
+  stokes_estimated_error_per_cell *=
+      4.0f / stokes_estimated_error_per_cell.l2_norm();
+  elasticity_estimated_error_per_cell *=
+      1.0f / elasticity_estimated_error_per_cell.l2_norm();
 
   Vector<float> estimated_error_per_cell(mesh.n_active_cells());
   estimated_error_per_cell += stokes_estimated_error_per_cell;
   estimated_error_per_cell += elasticity_estimated_error_per_cell;
+  
 
   // Set error to zero for cells at the interface to prevent artificially
   // large error indicators on both sides of the interface between subdomains.

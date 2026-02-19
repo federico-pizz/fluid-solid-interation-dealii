@@ -16,8 +16,13 @@ int main(int argc, char *argv[]) {
   const double lambda = 10.0; // Lamé lambda
 
   // Create FSI problem
-  FSI problem(degree_velocity, degree_pressure, degree_displacement, nu, p_out,
-              mu, lambda);
+  FSI problem(degree_velocity,
+              degree_pressure,
+              degree_displacement,
+              nu,
+              p_out,              
+              mu,
+              lambda);
 
   // Run the simulation
   problem.run();
