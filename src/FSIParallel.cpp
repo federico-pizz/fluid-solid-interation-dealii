@@ -694,7 +694,6 @@ void FSI::solve() {
   std::vector<std::vector<bool>> constant_modes;
 
   // do not extract constant modes for now
-
   // DoFTools::extract_constant_modes(
   //          dof_handler,
   //          fe_collection.component_mask(displacements),
@@ -802,9 +801,6 @@ void FSI::refine_mesh() {
 
   // Set error to zero for cells at the interface to prevent artificially
   // large error indicators on both sides of the interface between subdomains.
-  unsigned int local_index = 0; // A counter that increments only for locally owned-cells
-                                // using cell->active_cell_index() returns a global index wich
-                                // is evidently wrong.
   for (const auto &cell : dof_handler.active_cell_iterators()) {
     if (!cell->is_locally_owned())
       continue;
@@ -835,7 +831,6 @@ void FSI::refine_mesh() {
               cell_is_in_solid_domain(cell->neighbor(f)))))
           estimated_error_per_cell(cell->active_cell_index()) = 0;
       }
-    ++local_index;
   }
 
   // Mark cells for refinement (30%) and coarsening (0%) based on error
@@ -869,6 +864,11 @@ void FSI::run() {
 
   // Create the mesh.
 
+  TimerOutput timer(MPI_COMM_WORLD,
+                    pcout,
+                    TimerOutput::every_call,
+                    TimerOutput::wall_times);
+
   pcout << "Creating the mesh" << std::endl;
   FSI::make_grid();
   pcout << "  Number of elements = " << mesh.n_global_active_cells()
@@ -881,21 +881,27 @@ void FSI::run() {
     if (refinement_cycle > 0)
       refine_mesh();
 
+    pcout << "===============================================" << std::endl;
+    timer.enter_subsection ("Setup");
     setup();
+    timer.leave_subsection();
 
+    pcout << "===============================================" << std::endl;
     pcout << "   Assembling..." << std::endl;
+    timer.enter_subsection ("Assemble");
     assemble_system();
+    timer.leave_subsection();
 
+    pcout << "===============================================" << std::endl;
     pcout << "   Solving..." << std::endl;
-    auto start = std::chrono::steady_clock::now();
+    timer.enter_subsection ("Solve");
     solve();
-    auto end = std::chrono::steady_clock::now();
-    pcout << "   Time required to solve the system:" << std::endl;
-    pcout << std::chrono::duration<double>(end - start).count() << " seconds\n";
-
+    timer.leave_subsection();
+    pcout << "===============================================" << std::endl;
     pcout << "   Writing output..." << std::endl;
     output(refinement_cycle);
 
     pcout << std::endl;
   }
+  timer.print_summary();
 }

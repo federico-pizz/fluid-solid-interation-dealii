@@ -65,7 +65,7 @@
 #include <filesystem>
 
 // Timing
-#include <chrono>
+#include <deal.II/base/timer.h>
 
 using namespace dealii;
 
