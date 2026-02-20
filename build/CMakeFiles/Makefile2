@@ -64,7 +64,9 @@ CMAKE_BINARY_DIR = /home/fefe/Uni/nmpde-FSI/build
 
 # The main recursive "all" target.
 all: CMakeFiles/FSI_lib.dir/all
-all: CMakeFiles/fsi_test_parallel_2D.dir/all
+all: CMakeFiles/FSIParallel_lib.dir/all
+all: CMakeFiles/fsi_test_serial.dir/all
+all: CMakeFiles/fsi_test_parallel.dir/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
@@ -73,7 +75,9 @@ preinstall:
 
 # The main recursive "clean" target.
 clean: CMakeFiles/FSI_lib.dir/clean
-clean: CMakeFiles/fsi_test_parallel_2D.dir/clean
+clean: CMakeFiles/FSIParallel_lib.dir/clean
+clean: CMakeFiles/fsi_test_serial.dir/clean
+clean: CMakeFiles/fsi_test_parallel.dir/clean
 .PHONY : clean
 
 #=============================================================================
@@ -83,7 +87,7 @@ clean: CMakeFiles/fsi_test_parallel_2D.dir/clean
 CMakeFiles/FSI_lib.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FSI_lib.dir/build.make CMakeFiles/FSI_lib.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FSI_lib.dir/build.make CMakeFiles/FSI_lib.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/fefe/Uni/nmpde-FSI/build/CMakeFiles --progress-num=1,2 "Built target FSI_lib"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/fefe/Uni/nmpde-FSI/build/CMakeFiles --progress-num=3,4 "Built target FSI_lib"
 .PHONY : CMakeFiles/FSI_lib.dir/all
 
 # Build rule for subdir invocation for target.
@@ -103,30 +107,82 @@ CMakeFiles/FSI_lib.dir/clean:
 .PHONY : CMakeFiles/FSI_lib.dir/clean
 
 #=============================================================================
-# Target rules for target CMakeFiles/fsi_test_parallel_2D.dir
+# Target rules for target CMakeFiles/FSIParallel_lib.dir
 
 # All Build rule for target.
-CMakeFiles/fsi_test_parallel_2D.dir/all: CMakeFiles/FSI_lib.dir/all
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel_2D.dir/build.make CMakeFiles/fsi_test_parallel_2D.dir/depend
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel_2D.dir/build.make CMakeFiles/fsi_test_parallel_2D.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/fefe/Uni/nmpde-FSI/build/CMakeFiles --progress-num=3,4 "Built target fsi_test_parallel_2D"
-.PHONY : CMakeFiles/fsi_test_parallel_2D.dir/all
+CMakeFiles/FSIParallel_lib.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FSIParallel_lib.dir/build.make CMakeFiles/FSIParallel_lib.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FSIParallel_lib.dir/build.make CMakeFiles/FSIParallel_lib.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/fefe/Uni/nmpde-FSI/build/CMakeFiles --progress-num=1,2 "Built target FSIParallel_lib"
+.PHONY : CMakeFiles/FSIParallel_lib.dir/all
 
 # Build rule for subdir invocation for target.
-CMakeFiles/fsi_test_parallel_2D.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/fefe/Uni/nmpde-FSI/build/CMakeFiles 4
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/fsi_test_parallel_2D.dir/all
+CMakeFiles/FSIParallel_lib.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/fefe/Uni/nmpde-FSI/build/CMakeFiles 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/FSIParallel_lib.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/fefe/Uni/nmpde-FSI/build/CMakeFiles 0
-.PHONY : CMakeFiles/fsi_test_parallel_2D.dir/rule
+.PHONY : CMakeFiles/FSIParallel_lib.dir/rule
 
 # Convenience name for target.
-fsi_test_parallel_2D: CMakeFiles/fsi_test_parallel_2D.dir/rule
-.PHONY : fsi_test_parallel_2D
+FSIParallel_lib: CMakeFiles/FSIParallel_lib.dir/rule
+.PHONY : FSIParallel_lib
 
 # clean rule for target.
-CMakeFiles/fsi_test_parallel_2D.dir/clean:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel_2D.dir/build.make CMakeFiles/fsi_test_parallel_2D.dir/clean
-.PHONY : CMakeFiles/fsi_test_parallel_2D.dir/clean
+CMakeFiles/FSIParallel_lib.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FSIParallel_lib.dir/build.make CMakeFiles/FSIParallel_lib.dir/clean
+.PHONY : CMakeFiles/FSIParallel_lib.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/fsi_test_serial.dir
+
+# All Build rule for target.
+CMakeFiles/fsi_test_serial.dir/all: CMakeFiles/FSI_lib.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_serial.dir/build.make CMakeFiles/fsi_test_serial.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_serial.dir/build.make CMakeFiles/fsi_test_serial.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/fefe/Uni/nmpde-FSI/build/CMakeFiles --progress-num=7,8 "Built target fsi_test_serial"
+.PHONY : CMakeFiles/fsi_test_serial.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/fsi_test_serial.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/fefe/Uni/nmpde-FSI/build/CMakeFiles 4
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/fsi_test_serial.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/fefe/Uni/nmpde-FSI/build/CMakeFiles 0
+.PHONY : CMakeFiles/fsi_test_serial.dir/rule
+
+# Convenience name for target.
+fsi_test_serial: CMakeFiles/fsi_test_serial.dir/rule
+.PHONY : fsi_test_serial
+
+# clean rule for target.
+CMakeFiles/fsi_test_serial.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_serial.dir/build.make CMakeFiles/fsi_test_serial.dir/clean
+.PHONY : CMakeFiles/fsi_test_serial.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/fsi_test_parallel.dir
+
+# All Build rule for target.
+CMakeFiles/fsi_test_parallel.dir/all: CMakeFiles/FSIParallel_lib.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel.dir/build.make CMakeFiles/fsi_test_parallel.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel.dir/build.make CMakeFiles/fsi_test_parallel.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/fefe/Uni/nmpde-FSI/build/CMakeFiles --progress-num=5,6 "Built target fsi_test_parallel"
+.PHONY : CMakeFiles/fsi_test_parallel.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/fsi_test_parallel.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/fefe/Uni/nmpde-FSI/build/CMakeFiles 4
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/fsi_test_parallel.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/fefe/Uni/nmpde-FSI/build/CMakeFiles 0
+.PHONY : CMakeFiles/fsi_test_parallel.dir/rule
+
+# Convenience name for target.
+fsi_test_parallel: CMakeFiles/fsi_test_parallel.dir/rule
+.PHONY : fsi_test_parallel
+
+# clean rule for target.
+CMakeFiles/fsi_test_parallel.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel.dir/build.make CMakeFiles/fsi_test_parallel.dir/clean
+.PHONY : CMakeFiles/fsi_test_parallel.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

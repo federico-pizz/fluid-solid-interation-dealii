@@ -130,17 +130,43 @@ FSI_lib/fast:
 .PHONY : FSI_lib/fast
 
 #=============================================================================
-# Target rules for targets named fsi_test_parallel_2D
+# Target rules for targets named FSIParallel_lib
 
 # Build rule for target.
-fsi_test_parallel_2D: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 fsi_test_parallel_2D
-.PHONY : fsi_test_parallel_2D
+FSIParallel_lib: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 FSIParallel_lib
+.PHONY : FSIParallel_lib
 
 # fast build rule for target.
-fsi_test_parallel_2D/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel_2D.dir/build.make CMakeFiles/fsi_test_parallel_2D.dir/build
-.PHONY : fsi_test_parallel_2D/fast
+FSIParallel_lib/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FSIParallel_lib.dir/build.make CMakeFiles/FSIParallel_lib.dir/build
+.PHONY : FSIParallel_lib/fast
+
+#=============================================================================
+# Target rules for targets named fsi_test_serial
+
+# Build rule for target.
+fsi_test_serial: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 fsi_test_serial
+.PHONY : fsi_test_serial
+
+# fast build rule for target.
+fsi_test_serial/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_serial.dir/build.make CMakeFiles/fsi_test_serial.dir/build
+.PHONY : fsi_test_serial/fast
+
+#=============================================================================
+# Target rules for targets named fsi_test_parallel
+
+# Build rule for target.
+fsi_test_parallel: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 fsi_test_parallel
+.PHONY : fsi_test_parallel
+
+# fast build rule for target.
+fsi_test_parallel/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel.dir/build.make CMakeFiles/fsi_test_parallel.dir/build
+.PHONY : fsi_test_parallel/fast
 
 src/FSI.o: src/FSI.cpp.o
 .PHONY : src/FSI.o
@@ -166,29 +192,77 @@ src/FSI.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FSI_lib.dir/build.make CMakeFiles/FSI_lib.dir/src/FSI.cpp.s
 .PHONY : src/FSI.cpp.s
 
-src/test.o: src/test.cpp.o
-.PHONY : src/test.o
+src/FSIParallel.o: src/FSIParallel.cpp.o
+.PHONY : src/FSIParallel.o
 
 # target to build an object file
-src/test.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel_2D.dir/build.make CMakeFiles/fsi_test_parallel_2D.dir/src/test.cpp.o
-.PHONY : src/test.cpp.o
+src/FSIParallel.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FSIParallel_lib.dir/build.make CMakeFiles/FSIParallel_lib.dir/src/FSIParallel.cpp.o
+.PHONY : src/FSIParallel.cpp.o
 
-src/test.i: src/test.cpp.i
-.PHONY : src/test.i
+src/FSIParallel.i: src/FSIParallel.cpp.i
+.PHONY : src/FSIParallel.i
 
 # target to preprocess a source file
-src/test.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel_2D.dir/build.make CMakeFiles/fsi_test_parallel_2D.dir/src/test.cpp.i
-.PHONY : src/test.cpp.i
+src/FSIParallel.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FSIParallel_lib.dir/build.make CMakeFiles/FSIParallel_lib.dir/src/FSIParallel.cpp.i
+.PHONY : src/FSIParallel.cpp.i
 
-src/test.s: src/test.cpp.s
-.PHONY : src/test.s
+src/FSIParallel.s: src/FSIParallel.cpp.s
+.PHONY : src/FSIParallel.s
 
 # target to generate assembly for a file
-src/test.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel_2D.dir/build.make CMakeFiles/fsi_test_parallel_2D.dir/src/test.cpp.s
-.PHONY : src/test.cpp.s
+src/FSIParallel.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FSIParallel_lib.dir/build.make CMakeFiles/FSIParallel_lib.dir/src/FSIParallel.cpp.s
+.PHONY : src/FSIParallel.cpp.s
+
+src/simulate_parallel.o: src/simulate_parallel.cpp.o
+.PHONY : src/simulate_parallel.o
+
+# target to build an object file
+src/simulate_parallel.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel.dir/build.make CMakeFiles/fsi_test_parallel.dir/src/simulate_parallel.cpp.o
+.PHONY : src/simulate_parallel.cpp.o
+
+src/simulate_parallel.i: src/simulate_parallel.cpp.i
+.PHONY : src/simulate_parallel.i
+
+# target to preprocess a source file
+src/simulate_parallel.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel.dir/build.make CMakeFiles/fsi_test_parallel.dir/src/simulate_parallel.cpp.i
+.PHONY : src/simulate_parallel.cpp.i
+
+src/simulate_parallel.s: src/simulate_parallel.cpp.s
+.PHONY : src/simulate_parallel.s
+
+# target to generate assembly for a file
+src/simulate_parallel.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_parallel.dir/build.make CMakeFiles/fsi_test_parallel.dir/src/simulate_parallel.cpp.s
+.PHONY : src/simulate_parallel.cpp.s
+
+src/simulate_serial.o: src/simulate_serial.cpp.o
+.PHONY : src/simulate_serial.o
+
+# target to build an object file
+src/simulate_serial.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_serial.dir/build.make CMakeFiles/fsi_test_serial.dir/src/simulate_serial.cpp.o
+.PHONY : src/simulate_serial.cpp.o
+
+src/simulate_serial.i: src/simulate_serial.cpp.i
+.PHONY : src/simulate_serial.i
+
+# target to preprocess a source file
+src/simulate_serial.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_serial.dir/build.make CMakeFiles/fsi_test_serial.dir/src/simulate_serial.cpp.i
+.PHONY : src/simulate_serial.cpp.i
+
+src/simulate_serial.s: src/simulate_serial.cpp.s
+.PHONY : src/simulate_serial.s
+
+# target to generate assembly for a file
+src/simulate_serial.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fsi_test_serial.dir/build.make CMakeFiles/fsi_test_serial.dir/src/simulate_serial.cpp.s
+.PHONY : src/simulate_serial.cpp.s
 
 # Help Target
 help:
@@ -198,14 +272,22 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... FSIParallel_lib"
 	@echo "... FSI_lib"
-	@echo "... fsi_test_parallel_2D"
+	@echo "... fsi_test_parallel"
+	@echo "... fsi_test_serial"
 	@echo "... src/FSI.o"
 	@echo "... src/FSI.i"
 	@echo "... src/FSI.s"
-	@echo "... src/test.o"
-	@echo "... src/test.i"
-	@echo "... src/test.s"
+	@echo "... src/FSIParallel.o"
+	@echo "... src/FSIParallel.i"
+	@echo "... src/FSIParallel.s"
+	@echo "... src/simulate_parallel.o"
+	@echo "... src/simulate_parallel.i"
+	@echo "... src/simulate_parallel.s"
+	@echo "... src/simulate_serial.o"
+	@echo "... src/simulate_serial.i"
+	@echo "... src/simulate_serial.s"
 .PHONY : help
 
 

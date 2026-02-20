@@ -1,4 +1,6 @@
 /home/fefe/Uni/nmpde-FSI/build/CMakeFiles/FSI_lib.dir
-/home/fefe/Uni/nmpde-FSI/build/CMakeFiles/fsi_test_parallel_2D.dir
+/home/fefe/Uni/nmpde-FSI/build/CMakeFiles/FSIParallel_lib.dir
+/home/fefe/Uni/nmpde-FSI/build/CMakeFiles/fsi_test_serial.dir
+/home/fefe/Uni/nmpde-FSI/build/CMakeFiles/fsi_test_parallel.dir
 /home/fefe/Uni/nmpde-FSI/build/CMakeFiles/edit_cache.dir
 /home/fefe/Uni/nmpde-FSI/build/CMakeFiles/rebuild_cache.dir

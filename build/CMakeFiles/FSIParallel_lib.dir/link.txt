@@ -1,0 +1,2 @@
+/u/sw/toolchains/gcc-glibc/11.2.0/prefix/bin/ar qc libFSIParallel_lib.a CMakeFiles/FSIParallel_lib.dir/src/FSIParallel.cpp.o
+/u/sw/toolchains/gcc-glibc/11.2.0/prefix/bin/ranlib libFSIParallel_lib.a
