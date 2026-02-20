@@ -60,9 +60,12 @@
 #include <deal.II/lac/trilinos_precondition.h>
 
 // Standard library
+#include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <filesystem>
+#include <sched.h>
+#include <thread>
+#include <unistd.h>
 
 // Timing
 #include <deal.II/base/timer.h>

@@ -155,12 +155,13 @@ void FSI::setup() {
       std::vector<types::global_dof_index> local_face_dof_indices(
           stokes_fe->n_dofs_per_face());
       for (const auto &cell : dof_handler.active_cell_iterators()) {
-        // Artificial cells are nodes owned by the process and 
-        // are not ghost cells. In this way we also process ghost 
+        // Artificial cells are nodes owned by the process and
+        // are not ghost cells. In this way we also process ghost
         // cells. A fluid cell might have a solid neighbour owned by
         // another process, since this cell appears as a ghost cell
         // we must to process it.
-        if (cell->is_artificial()) continue;
+        if (cell->is_artificial())
+          continue;
         if (cell_is_in_fluid_domain(cell))
           for (const auto face_no : cell->face_indices())
             if (cell->face(face_no)->at_boundary() == false) {
@@ -310,10 +311,9 @@ void FSI::setup() {
       }
     }
 
-    TrilinosWrappers::BlockSparsityPattern sparsity_pressure_mass(block_owned_dofs,
-                                                                  block_owned_dofs,
-                                                                  block_relevant_dofs,
-                                                                  MPI_COMM_WORLD);
+    TrilinosWrappers::BlockSparsityPattern sparsity_pressure_mass(
+        block_owned_dofs, block_owned_dofs, block_relevant_dofs,
+        MPI_COMM_WORLD);
 
     DoFTools::make_sparsity_pattern(dof_handler, coupling,
                                     sparsity_pressure_mass, constraints, true,
@@ -784,20 +784,20 @@ void FSI::refine_mesh() {
   const float local_stokes_sq = stokes_estimated_error_per_cell.norm_sqr();
   float global_stokes_sq = 0.0f;
   // Reduce and broadcast the results to each processor
-  MPI_Allreduce(&local_stokes_sq, &global_stokes_sq,
-                1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&local_stokes_sq, &global_stokes_sq, 1, MPI_FLOAT, MPI_SUM,
+                MPI_COMM_WORLD);
   stokes_estimated_error_per_cell *= 4.0f / std::sqrt(global_stokes_sq);
 
-  const float local_elasticity_sq = elasticity_estimated_error_per_cell.norm_sqr();
+  const float local_elasticity_sq =
+      elasticity_estimated_error_per_cell.norm_sqr();
   float global_elasticity_sq = 0.0f;
-  MPI_Allreduce(&local_elasticity_sq, &global_elasticity_sq,
-                1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&local_elasticity_sq, &global_elasticity_sq, 1, MPI_FLOAT,
+                MPI_SUM, MPI_COMM_WORLD);
   elasticity_estimated_error_per_cell *= 1.0f / std::sqrt(global_elasticity_sq);
-  
+
   Vector<float> estimated_error_per_cell(mesh.n_active_cells());
   estimated_error_per_cell += stokes_estimated_error_per_cell;
   estimated_error_per_cell += elasticity_estimated_error_per_cell;
-  
 
   // Set error to zero for cells at the interface to prevent artificially
   // large error indicators on both sides of the interface between subdomains.
@@ -860,50 +860,122 @@ void FSI::make_grid() {
       cell->set_material_id(solid_domain_id);
 }
 
-void FSI::run() {
+  void FSI::run() {
 
   // Set the timer
 
-  TimerOutput timer(MPI_COMM_WORLD,
-                    pcout,
-                    TimerOutput::every_call,
-                    TimerOutput::wall_times);
+    TimerOutput timer(MPI_COMM_WORLD, pcout, TimerOutput::every_call,
+                      TimerOutput::wall_times);
 
-  // Create the mesh.
+    pcout << "Creating the mesh" << std::endl;
+    FSI::make_grid();
+    pcout << "  Number of elements = " << mesh.n_global_active_cells()
+          << std::endl;
 
-  pcout << "Creating the mesh" << std::endl;
-  FSI::make_grid();
-  pcout << "  Number of elements = " << mesh.n_global_active_cells()
-        << std::endl;
+    dealii::Timer total_timer;
+    total_timer.start();
 
-  for (unsigned int refinement_cycle = 0; refinement_cycle < 10 - 2 * dim;
-       ++refinement_cycle) {
-    pcout << "Refinement cycle " << refinement_cycle << std::endl;
+    // Determine OpenMP threads manually by dividing allocated hardware threads
+    // by local MPI ranks
+    MPI_Comm shmcomm;
+    MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL,
+                        &shmcomm);
+    int local_mpi_size;
+    MPI_Comm_size(shmcomm, &local_mpi_size);
+    MPI_Comm_free(&shmcomm);
 
-    if (refinement_cycle > 0)
-      refine_mesh();
+    int hw_threads = std::thread::hardware_concurrency();
 
-    pcout << "===============================================" << std::endl;
-    timer.enter_subsection ("Setup");
-    setup();
-    timer.leave_subsection();
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    if (sched_getaffinity(0, sizeof(cpu_set_t), &cpuset) == 0) {
+      hw_threads = CPU_COUNT(&cpuset);
+    }
 
-    pcout << "===============================================" << std::endl;
-    pcout << "   Assembling..." << std::endl;
-    timer.enter_subsection ("Assemble");
-    assemble_system();
-    timer.leave_subsection();
+    int omp_threads = hw_threads / local_mpi_size;
+    if (omp_threads < 1)
+      omp_threads = 1;
 
-    pcout << "===============================================" << std::endl;
-    pcout << "   Solving..." << std::endl;
-    timer.enter_subsection ("Solve");
-    solve();
-    timer.leave_subsection();
-    pcout << "===============================================" << std::endl;
-    pcout << "   Writing output..." << std::endl;
-    output(refinement_cycle);
+    std::string csv_filename = "timing_results_" + std::to_string(dim) + "D_" +
+                               std::to_string(mpi_size) + "P_" +
+                               std::to_string(omp_threads) + "T.csv";
+    if (mpi_rank == 0) {
+      std::ofstream out_file(csv_filename);
+      out_file
+          << "cycle,mpi_size,omp_threads,active_cells,total_dofs,setup_time,"
+             "assemble_time,solve_time,cycle_total_time\n";
+    }
 
-    pcout << std::endl;
+    for (unsigned int refinement_cycle = 0; refinement_cycle < 10 - 2 * dim;
+         ++refinement_cycle) {
+      pcout << "Refinement cycle " << refinement_cycle << std::endl;
+
+      if (refinement_cycle > 0)
+        refine_mesh();
+
+      dealii::Timer cycle_timer;
+      cycle_timer.start();
+
+      pcout << "===============================================" << std::endl;
+      dealii::Timer setup_timer;
+      setup_timer.start();
+      timer.enter_subsection("Setup");
+      setup();
+      timer.leave_subsection();
+      setup_timer.stop();
+
+      pcout << "===============================================" << std::endl;
+      pcout << "   Assembling..." << std::endl;
+      dealii::Timer assemble_timer;
+      assemble_timer.start();
+      timer.enter_subsection("Assemble");
+      assemble_system();
+      timer.leave_subsection();
+      assemble_timer.stop();
+
+      pcout << "===============================================" << std::endl;
+      pcout << "   Solving..." << std::endl;
+      dealii::Timer solve_timer;
+      solve_timer.start();
+      timer.enter_subsection("Solve");
+      solve();
+      timer.leave_subsection();
+      solve_timer.stop();
+
+      pcout << "===============================================" << std::endl;
+      pcout << "   Writing output..." << std::endl;
+      output(refinement_cycle);
+
+      cycle_timer.stop();
+
+      double setup_time =
+          Utilities::MPI::max(setup_timer.wall_time(), MPI_COMM_WORLD);
+      double assemble_time =
+          Utilities::MPI::max(assemble_timer.wall_time(), MPI_COMM_WORLD);
+      double solve_time =
+          Utilities::MPI::max(solve_timer.wall_time(), MPI_COMM_WORLD);
+      double cycle_time =
+          Utilities::MPI::max(cycle_timer.wall_time(), MPI_COMM_WORLD);
+
+      if (mpi_rank == 0) {
+        std::ofstream out_file(csv_filename, std::ios::app);
+        out_file << refinement_cycle << "," << mpi_size << "," << omp_threads
+                 << "," << mesh.n_global_active_cells() << ","
+                 << dof_handler.n_dofs() << "," << setup_time << ","
+                 << assemble_time << "," << solve_time << "," << cycle_time
+                 << "\n";
+      }
+
+      pcout << std::endl;
+    }
+
+    total_timer.stop();
+    double total_wall_time =
+        Utilities::MPI::max(total_timer.wall_time(), MPI_COMM_WORLD);
+    if (mpi_rank == 0) {
+      std::ofstream out_file(csv_filename, std::ios::app);
+      out_file << "TOTAL_WALL_TIME," << total_wall_time << "\n";
+    }
+
+    timer.print_summary();
   }
-  timer.print_summary();
-}
