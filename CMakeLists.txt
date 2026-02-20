@@ -6,16 +6,22 @@ project(FSI_NMPDE LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Set default build type to Debug.
+# Release builds.
 if(NOT CMAKE_BUILD_TYPE OR "${CMAKE_BUILD_TYPE}" STREQUAL "")
-  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "" FORCE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+else()
+  if(NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+    message(WARNING "Forcing CMAKE_BUILD_TYPE=Release (was ${CMAKE_BUILD_TYPE})")
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+  endif()
 endif()
 message(STATUS)
-message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Build type (forced): ${CMAKE_BUILD_TYPE}")
 message(STATUS)
-if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-  add_definitions(-DBUILD_TYPE_DEBUG)
-endif()
+
+add_definitions(-DBUILD_TYPE_RELEASE)
+# Release flags: optimize and disable asserts via NDEBUG.
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
 
 # Locate MPI compiler.
 find_package(MPI REQUIRED)
@@ -36,7 +42,6 @@ deal_ii_initialize_cached_variables()
 # Add useful compiler flags.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wfloat-conversion -Wmissing-braces -Wnon-virtual-dtor")
 
-
 # Build object library to compile core sources.
 # add_library(FSI_lib OBJECT
 #   src/FSI.cpp
@@ -44,17 +49,18 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wfloat-conversion -Wmissing-braces -Wno
 # deal_ii_setup_target(FSI_lib)
 # target_link_libraries(FSI_lib Boost::filesystem Boost::iostreams Boost::serialization MPI::MPI_CXX)
 
+# Serial executable.
+# add_executable(simulate_serial src/simulate_serial.cpp)
+# target_link_libraries(simulate_serial FSI_lib)
+# deal_ii_setup_target(simulate_serial)
+
+
 # Build object library to compile parallel sources.
 add_library(FSIParallel_lib OBJECT
   src/FSIParallel.cpp
 )
 deal_ii_setup_target(FSIParallel_lib)
 target_link_libraries(FSIParallel_lib Boost::filesystem Boost::iostreams Boost::serialization MPI::MPI_CXX)
-
-# Serial executable.
-# add_executable(simulate_serial src/simulate_serial.cpp)
-# target_link_libraries(simulate_serial FSI_lib)
-# deal_ii_setup_target(simulate_serial)
 
 # Parallel executable.
 add_executable(simulate_parallel src/simulate_parallel.cpp)
