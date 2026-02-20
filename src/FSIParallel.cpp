@@ -155,9 +155,11 @@ void FSI::setup() {
       std::vector<types::global_dof_index> local_face_dof_indices(
           stokes_fe->n_dofs_per_face());
       for (const auto &cell : dof_handler.active_cell_iterators()) {
-        // Artificial cells are note owned by the process and 
+        // Artificial cells are nodes owned by the process and 
         // are not ghost cells. In this way we also process ghost 
-        // cells.
+        // cells. A fluid cell might have a solid neighbour owned by
+        // another process, since this cell appears as a ghost cell
+        // we must to process it.
         if (cell->is_artificial()) continue;
         if (cell_is_in_fluid_domain(cell))
           for (const auto face_no : cell->face_indices())
@@ -239,8 +241,9 @@ void FSI::setup() {
     block_sizes[0] = n_u;
     block_sizes[1] = n_p;
     block_sizes[2] = n_d;    
-    DoFTools::make_flux_sparsity_pattern(dof_handler, sparsity, constraints,
-                                         true, coupling, face_coupling,
+    DoFTools::make_flux_sparsity_pattern(dof_handler, sparsity,
+                                         constraints, true,
+                                         coupling, face_coupling,
                                          numbers::invalid_subdomain_id);
 
     {
@@ -264,8 +267,7 @@ void FSI::setup() {
               for (unsigned int subface = 0;
                    subface < cell->face(f)->n_children(); ++subface) {
                 auto child = cell->neighbor_child_on_subface(f, subface);
-                if (cell_is_in_fluid_domain(
-                        child)) // Connection: Solid(Coarse) <-> Fluid(Fine)
+                if (cell_is_in_fluid_domain(child))
                 {
                   neighbor_dofs.resize(child->get_fe().n_dofs_per_cell());
                   child->get_dof_indices(neighbor_dofs);
@@ -440,7 +442,6 @@ void FSI::assemble_system() {
         }
 
         // Assemble Stokes weak form:
-        // ν(∇u_i, ∇u_j) - (∇·u_i, p_j) - (p_i, ∇·u_j)
         for (unsigned int i = 0; i < dofs_per_cell; ++i) {
           for (unsigned int j = 0; j < dofs_per_cell; ++j) {
             local_matrix(i, j) += (nu * scalar_product(stokes_grad_phi_u[i],
@@ -471,7 +472,6 @@ void FSI::assemble_system() {
         }
 
         // Assemble linear elasticity weak form:
-        // λ(∇·d_i, ∇·d_j) + μ(∇d_i, ∇d_j) + μ(∇d_i, (∇d_j)^T)
         for (unsigned int i = 0; i < dofs_per_cell; ++i) {
           for (unsigned int j = 0; j < dofs_per_cell; ++j) {
             local_matrix(i, j) +=
@@ -862,12 +862,14 @@ void FSI::make_grid() {
 
 void FSI::run() {
 
-  // Create the mesh.
+  // Set the timer
 
   TimerOutput timer(MPI_COMM_WORLD,
                     pcout,
                     TimerOutput::every_call,
                     TimerOutput::wall_times);
+
+  // Create the mesh.
 
   pcout << "Creating the mesh" << std::endl;
   FSI::make_grid();

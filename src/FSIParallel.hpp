@@ -146,6 +146,8 @@ public:
       amg_data.aggregation_threshold = 1e-3;
       preconditioner_displacement.initialize(displacement_stiffness_, amg_data);
 
+      preconditioner_velocity.initialize(velocity_stiffness_);
+      /*
       // Velocity AMG
       TrilinosWrappers::PreconditionAMG::AdditionalData amg_data_vel;
       amg_data_vel.elliptic = true;
@@ -153,6 +155,7 @@ public:
       amg_data_vel.smoother_sweeps = 2;
       amg_data_vel.aggregation_threshold = 1e-3;
       preconditioner_velocity.initialize(velocity_stiffness_, amg_data_vel);
+      */
     }
 
     // Application of the preconditioner.
@@ -165,11 +168,11 @@ public:
         // Solve fluid system
         SolverControl solver_control_vel(2000, 1e-2 * src.block(0).l2_norm());
 
-        SolverCG<TrilinosWrappers::MPI::Vector> solver_gmres_vel(
+        SolverCG<TrilinosWrappers::MPI::Vector> solver_cg_vel(
             solver_control_vel);
         dst.block(0) = 0;
 
-        solver_gmres_vel.solve(*velocity_stiffness, dst.block(0), src.block(0),
+        solver_cg_vel.solve(*velocity_stiffness, dst.block(0), src.block(0),
                                preconditioner_velocity);
       }
 
