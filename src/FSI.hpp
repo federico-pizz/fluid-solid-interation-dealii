@@ -107,7 +107,8 @@ public:
         const SparseMatrix<double> &velocity_stiffness_,
         const SparseMatrix<double> &pressure_mass_,
         const SparseMatrix<double> &displacement_stiffness_,
-        const SparseMatrix<double> &B10_, const SparseMatrix<double> &B20_,
+        const SparseMatrix<double> &B10_, 
+        const SparseMatrix<double> &B20_,
         const SparseMatrix<double> &B21_,
         const std::vector<std::vector<bool>> &displacement_constant_modes) {
       velocity_stiffness = &velocity_stiffness_;
@@ -117,7 +118,11 @@ public:
       B21 = &B21_;
       displacement_stiffness = &displacement_stiffness_;
 
-      preconditioner_pressure.initialize(pressure_mass_);
+      TrilinosWrappers::PreconditionAMG::AdditionalData amg_data_pres;
+      amg_data_pres.elliptic = true;
+      amg_data_pres.higher_order_elements = false;
+      amg_data_pres.aggregation_threshold = 1e-2;
+      preconditioner_pressure.initialize(pressure_mass_, amg_data_pres);
 
       /**
        * The AMG takes some options for optimization.
@@ -132,7 +137,7 @@ public:
       TrilinosWrappers::PreconditionAMG::AdditionalData amg_data;
       amg_data.constant_modes = displacement_constant_modes;
       amg_data.elliptic = true;
-      amg_data.higher_order_elements = false;
+      amg_data.higher_order_elements = true;
       amg_data.smoother_sweeps = 3;
       amg_data.w_cycle = false;
       amg_data.aggregation_threshold = 1e-3;
@@ -143,7 +148,7 @@ public:
       amg_data_vel.elliptic = true;
       amg_data_vel.higher_order_elements = true;
       amg_data_vel.smoother_sweeps = 2;
-      amg_data_vel.aggregation_threshold = 1e-3;
+      amg_data_vel.aggregation_threshold = 1e-2;
       preconditioner_velocity.initialize(velocity_stiffness_, amg_data_vel);
 
       tmp_p.reinit(pressure_mass_.m());
@@ -214,7 +219,7 @@ public:
     const SparseMatrix<double> *pressure_mass;
 
     // Preconditioner used for the pressure block.
-    SparseILU<double> preconditioner_pressure;
+    TrilinosWrappers::PreconditionAMG preconditioner_pressure;
 
     // Preconditioner used for the solid block
     TrilinosWrappers::PreconditionAMG preconditioner_displacement;

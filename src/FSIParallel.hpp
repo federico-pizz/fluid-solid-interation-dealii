@@ -157,7 +157,7 @@ public:
       amg_data_vel.elliptic = true;
       amg_data_vel.higher_order_elements = true;
       amg_data_vel.smoother_sweeps = 2;
-      amg_data_vel.aggregation_threshold = 0.01;
+      amg_data_vel.aggregation_threshold = 1e-2;
       preconditioner_velocity.initialize(velocity_stiffness_, amg_data_vel);
       
     }
