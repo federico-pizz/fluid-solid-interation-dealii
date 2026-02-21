@@ -124,6 +124,7 @@ public:
       B21 = &B21_;
       displacement_stiffness = &displacement_stiffness_;
 
+      
       TrilinosWrappers::PreconditionAMG::AdditionalData amg_data_pres;
       amg_data_pres.elliptic = true;
       amg_data_pres.higher_order_elements = false;
@@ -143,22 +144,22 @@ public:
       TrilinosWrappers::PreconditionAMG::AdditionalData amg_data;
       amg_data.constant_modes = displacement_constant_modes;
       amg_data.elliptic = true;
-      amg_data.higher_order_elements = false;
+      amg_data.higher_order_elements = true;
       amg_data.smoother_sweeps = 3;
       amg_data.w_cycle = false;
       amg_data.aggregation_threshold = 1e-3;
       preconditioner_displacement.initialize(displacement_stiffness_, amg_data);
 
-      preconditioner_velocity.initialize(velocity_stiffness_);
-      /*
+      //preconditioner_velocity.initialize(velocity_stiffness_);
+      
       // Velocity AMG
       TrilinosWrappers::PreconditionAMG::AdditionalData amg_data_vel;
       amg_data_vel.elliptic = true;
       amg_data_vel.higher_order_elements = true;
       amg_data_vel.smoother_sweeps = 2;
-      amg_data_vel.aggregation_threshold = 1e-3;
+      amg_data_vel.aggregation_threshold = 0.01;
       preconditioner_velocity.initialize(velocity_stiffness_, amg_data_vel);
-      */
+      
     }
 
     // Application of the preconditioner.

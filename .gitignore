@@ -1,4 +1,3 @@
-## C++ #########################################################################
 
 # Prerequisites
 *.d
@@ -33,4 +32,9 @@
 *.out
 *.app
 
-*/build/*
+# Simulation Output
+*.vtu
+*.pvtu
+
+# Build folder
+build/*
