@@ -740,9 +740,29 @@ void FSI::output(const unsigned int refinement_cycle) {
   const Vector<double> partitioning(partition_int.begin(), partition_int.end());
   data_out.add_data_vector(partitioning, "partitioning");
 
+  DoFHandler<dim> dg_dof_handler(mesh);
+  FE_DGQ<dim> dg_fe(0);  // one DoF per cell
+  dg_dof_handler.distribute_dofs(dg_fe);
+
+  TrilinosWrappers::MPI::Vector domain_id_vector;
+  domain_id_vector.reinit(dg_dof_handler.locally_owned_dofs(), MPI_COMM_WORLD);
+
+  for (const auto &cell : dg_dof_handler.active_cell_iterators())
+  {
+    if (!cell->is_locally_owned())
+      continue;
+
+    std::vector<types::global_dof_index> dof_index(1);
+    cell->get_dof_indices(dof_index);
+    domain_id_vector(dof_index[0]) = cell->material_id();
+  }
+  domain_id_vector.compress(VectorOperation::insert);
+
+  data_out.add_data_vector(dg_dof_handler, domain_id_vector, "domain_id");
+
   data_out.build_patches();
 
-  const std::string output_file_name = "output-fsi-parallel";
+  const std::string output_file_name = "output-fsi-2D";
   data_out.write_vtu_with_pvtu_record("./", output_file_name, refinement_cycle,
                                       MPI_COMM_WORLD);
 

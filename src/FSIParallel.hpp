@@ -124,11 +124,24 @@ public:
       B21 = &B21_;
       displacement_stiffness = &displacement_stiffness_;
 
-      TrilinosWrappers::PreconditionAMG::AdditionalData amg_data_pres;
-      amg_data_pres.elliptic = true;
-      amg_data_pres.higher_order_elements = false;
-      amg_data_pres.aggregation_threshold = 1e-2;
-      preconditioner_pressure.initialize(pressure_mass_, amg_data_pres);
+      // Velocity AMG
+      TrilinosWrappers::PreconditionAMG::AdditionalData amg_data_vel;
+      amg_data_vel.elliptic = true;
+      amg_data_vel.higher_order_elements = true;
+      amg_data_vel.smoother_sweeps = 2;
+      amg_data_vel.aggregation_threshold = 1e-3;
+      preconditioner_velocity.initialize(velocity_stiffness_, amg_data_vel);
+
+      /*
+      // Pressure AMG
+      TrilinosWrappers::PreconditionAMG::AdditionalData amg_data_press;
+      amg_data_press.elliptic = true;
+      amg_data_press.higher_order_elements = true;
+      amg_data_press.smoother_sweeps = 1;
+      amg_data_press.aggregation_threshold = 1e-3;
+      */
+
+      preconditioner_pressure.initialize(pressure_mass_);
 
       /**
        * The AMG takes some options for optimization.
@@ -143,22 +156,11 @@ public:
       TrilinosWrappers::PreconditionAMG::AdditionalData amg_data;
       amg_data.constant_modes = displacement_constant_modes;
       amg_data.elliptic = true;
-      amg_data.higher_order_elements = false;
+      amg_data.higher_order_elements = true;
       amg_data.smoother_sweeps = 3;
       amg_data.w_cycle = false;
-      amg_data.aggregation_threshold = 1e-3;
+      amg_data.aggregation_threshold = 0.01;
       preconditioner_displacement.initialize(displacement_stiffness_, amg_data);
-
-      preconditioner_velocity.initialize(velocity_stiffness_);
-      /*
-      // Velocity AMG
-      TrilinosWrappers::PreconditionAMG::AdditionalData amg_data_vel;
-      amg_data_vel.elliptic = true;
-      amg_data_vel.higher_order_elements = true;
-      amg_data_vel.smoother_sweeps = 2;
-      amg_data_vel.aggregation_threshold = 1e-3;
-      preconditioner_velocity.initialize(velocity_stiffness_, amg_data_vel);
-      */
     }
 
     // Application of the preconditioner.
@@ -202,7 +204,7 @@ public:
 
       {
         SolverControl solver_control_disp(2000, 1e-2 * tmp_d.l2_norm());
-        SolverGMRES<TrilinosWrappers::MPI::Vector> solver_gmres_disp(
+        SolverCG<TrilinosWrappers::MPI::Vector> solver_gmres_disp(
             solver_control_disp);
         dst.block(2) = 0;
 
@@ -224,13 +226,15 @@ public:
     const TrilinosWrappers::SparseMatrix *B21;
 
     // Preconditioner used for the velocity block.
+    //TrilinosWrappers::PreconditionILU preconditioner_velocity;
     TrilinosWrappers::PreconditionAMG preconditioner_velocity;
 
     // Pressure mass matrix.
     const TrilinosWrappers::SparseMatrix *pressure_mass;
 
     // Preconditioner used for the pressure block.
-    TrilinosWrappers::PreconditionAMG preconditioner_pressure;
+    // TrilinosWrappers::PreconditionILU preconditioner_pressure;
+    TrilinosWrappers::PreconditionIdentity preconditioner_pressure;
 
     // Preconditioner used for the solid block
     TrilinosWrappers::PreconditionAMG preconditioner_displacement;
