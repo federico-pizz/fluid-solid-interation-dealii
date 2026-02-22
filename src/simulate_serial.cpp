@@ -10,12 +10,11 @@ int main(int argc, char *argv[]) {
 
   // Physical parameters
   const double nu = 2.0;      // Kinematic viscosity
-  const double p_out = 10.0;  // Outlet pressure
   const double mu = 1.0;      // Lamé mu
   const double lambda = 10.0; // Lamé lambda
 
   // Create FSI problem
-  FSI problem(degree_velocity, degree_pressure, degree_displacement, nu, p_out,
+  FSI problem(degree_velocity, degree_pressure, degree_displacement, nu,
               mu, lambda);
 
   // Run the simulation

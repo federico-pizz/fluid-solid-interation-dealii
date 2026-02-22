@@ -235,10 +235,10 @@ public:
   FSI(const unsigned int &degree_velocity_,
       const unsigned int &degree_pressure_,
       const unsigned int &degree_displacement_, const double &nu_,
-      const double &p_out_, const double &mu_, const double &lambda_)
-      : degree_velocity(degree_velocity_), degree_pressure(degree_pressure_),
-        degree_displacement(degree_displacement_), nu(nu_), p_out(p_out_),
-        mu(mu_), lambda(lambda_), dof_handler(mesh) {}
+      const double &mu_, const double &lambda_)
+      : nu(nu_), mu(mu_), lambda(lambda_),
+        degree_velocity(degree_velocity_), degree_pressure(degree_pressure_),
+        degree_displacement(degree_displacement_), dof_handler(mesh) {}
 
   // Setup system (mesh, FE space, DoF handler, and linear system).
   void setup();
@@ -280,9 +280,7 @@ protected:
 
   // Kinematic viscosity [m2/s]. - deal-ii uses 2 for some reason
   const double nu;
-
-  // Outlet pressure [Pa].
-  const double p_out;
+  
 
   // Lamé parameters.
   const double mu;
