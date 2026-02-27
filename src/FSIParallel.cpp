@@ -492,7 +492,6 @@ void FSI::assemble_system() {
     cell->get_dof_indices(local_dof_indices);
     constraints.distribute_local_to_global(
         local_matrix, local_rhs, local_dof_indices, system_matrix, system_rhs);
-    // FIX: Distribute Pressure Mass Matrix (strictly Pressure DoFs only)
     if (cell_is_in_fluid_domain(cell)) {
       // Filter indices: Extract only Pressure DoFs
       std::vector<types::global_dof_index> local_pressure_dof_indices;
@@ -625,7 +624,6 @@ void FSI::assemble_system() {
 
 // Assemble the coupling terms at the fluid-solid interface.
 // This enforces the kinematic coupling condition: fluid stress acting on solid.
-// Interface term: ∫_Γ (2ν∇u·n - p·n) · d dΓ
 void FSI::assemble_interface_term(
     const FEFaceValuesBase<dim> &elasticity_fe_face_values,
     const FEFaceValuesBase<dim> &stokes_fe_face_values,
@@ -656,10 +654,9 @@ void FSI::assemble_interface_term(
       elasticity_phi[k] = elasticity_fe_face_values[displacements].value(k, q);
 
     // Compute interface coupling: -(fluid stress · normal) · displacement test
-    // function Term: -∫_Γ (2ν ε(u)·n - p n) · d_i dΓ
     for (unsigned int i = 0; i < elasticity_fe_face_values.dofs_per_cell; ++i)
       for (unsigned int j = 0; j < stokes_fe_face_values.dofs_per_cell; ++j) {
-        // Compute symmetric part of the gradient: ε(u) = 0.5 * (∇u + ∇u^T)
+        // Compute symmetric part of the gradient
         const Tensor<2, dim> sym_grad_u =
             0.5 * (stokes_grad_phi_u[j] + transpose(stokes_grad_phi_u[j]));
 
